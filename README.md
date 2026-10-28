@@ -6,9 +6,11 @@
 
 LANRider is a self-hosted browser racing game intended for personal LAN parties. The software is MIT licensed; project artwork and music are licensed separately. You may use the project artwork and music under their respective terms and fork this repository on GitHub. Outside GitHub forks, you may not redistribute or sell those assets separately or as part of another product. See [asset terms](public/assets/licenses.md).
 
-The project began as **LocalHostRIDER**, a name for running locally. It was renamed **LANRider** to reflect racing together on a LAN. The screenshots retain the earlier name.
+The project began as **LocalHostRIDER**, a name for running locally. It was renamed **LANRider** to reflect racing together on a LAN. Some screenshots retain the earlier name.
 
 ## Screenshots
+
+![LANRider running in a desktop browser](docs/screenshots/browser-lobby.png)
 
 ![A LAN race begins on the beach circuit](docs/screenshots/race.png)
 
