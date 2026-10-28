@@ -1,0 +1,13 @@
+# Runtime-only build context. Authoring files, caches and QA captures stay outside.
+**
+!package.json
+!package-lock.json
+!server.js
+!shared/
+!shared/**
+!public/
+!public/**
+!LICENSE.md
+!THIRD_PARTY_NOTICES.md
+public/assets/audio/bongo-rave.mp3
+public/assets/audio/you-know-me.mp3

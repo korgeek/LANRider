@@ -1,0 +1,15 @@
+{
+  "name": "lanrider",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "suncalc": "2.1.1",
+    "three": "0.186.1",
+    "ws": "8.22.0"
+  }
+}

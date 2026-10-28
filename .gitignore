@@ -1,0 +1,17 @@
+node_modules/
+.npm-cache/
+.cache/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+# Private backups, authoring originals and local verification output.
+/_archive/
+/.superpowers/
+/.codex/
+/.aws/
+/.npmrc
+.env
+.env.*
+!.env.example
+/release/

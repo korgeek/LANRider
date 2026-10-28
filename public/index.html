@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071b2c">
+  <title>LANRider · 바닷가 서킷</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/","suncalc":"/vendor/suncalc/index.js"}}</script>
+  <script type="module">import { localizeDocument } from '/i18n.js'; localizeDocument();</script>
+  <script type="module" src="/main.js"></script>
+</head>
+<body>
+  <audio id="ambient-audio" src="/assets/audio/ambient-waves.mp3?v=685ceeac28a4" loop preload="none"></audio>
+  <audio id="music-audio" preload="none"></audio>
+  <audio id="collision-audio" src="/assets/audio/sfx/collision-c02.mp3" preload="auto"></audio>
+  <audio id="boost-audio" src="/assets/audio/sfx/boost-b01.mp3" preload="auto"></audio>
+  <audio id="drift-d02-audio" src="/assets/audio/sfx/drift-d02.mp3" preload="auto"></audio>
+  <audio id="drift-d03-audio" src="/assets/audio/sfx/drift-d03.mp3" preload="auto"></audio>
+  <audio id="countdown-tick-audio" src="/assets/audio/sfx/countdown-b-tick.wav" preload="auto"></audio>
+  <audio id="countdown-go-audio" src="/assets/audio/sfx/countdown-b-go.wav" preload="auto"></audio>
+  <audio id="finish-audio" src="/assets/audio/sfx/finish-c-cheer.mp3" preload="auto"></audio>
+  <canvas id="world" aria-label="LANRider 3D 바닷가 서킷"></canvas>
+  <div id="boost-lines" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <header id="brand"><div><a href="/" aria-label="LANRider 처음으로">LAN<span>Rider</span><i> / </i><small>BEACH</small></a><button id="connection" type="button" aria-label="현재 방 링크 복사" disabled>서버 연결 중</button></div><div class="header-actions"><button id="master-mute" type="button" aria-pressed="false" aria-label="전체 소리 음소거">음소거</button><button id="sound-toggle" type="button" aria-haspopup="dialog" aria-controls="sound-settings">설정</button><button id="race-leave" type="button" class="leave" hidden>나가기</button></div></header>
+  <dialog id="sound-settings" class="panel" aria-labelledby="sound-title" aria-describedby="sound-status">
+    <h2 id="sound-title">설정 <span id="build-version"></span></h2>
+    <label for="graphics-quality">그래픽 품질</label>
+    <select id="graphics-quality"><option value="high">상</option><option value="medium">중</option><option value="low">하</option></select>
+    <p id="graphics-status" class="muted" role="status"></p>
+    <label class="debug-setting" for="debug-toggle">디버그 표시 <input id="debug-toggle" type="checkbox" aria-controls="debug-status"></label>
+    <label for="ambient-volume">앰비언트 · 파도 <output id="ambient-level">30%</output></label>
+    <div class="sound-channel"><input id="ambient-volume" type="range" min="0" max="100" value="30" step="1"><button id="ambient-mute" type="button" aria-pressed="false" aria-label="앰비언트 음소거">음소거</button></div>
+    <label for="music-volume">트랙 음악 <output id="music-level">50%</output></label>
+    <div class="sound-channel"><input id="music-volume" type="range" min="0" max="100" value="50" step="1"><button id="music-mute" type="button" aria-pressed="false" aria-label="음악 음소거">음소거</button></div>
+    <label for="sfx-volume">효과음 <output id="sfx-level">20%</output></label>
+    <div class="sound-channel"><input id="sfx-volume" type="range" min="0" max="100" value="20" step="1"><button id="sfx-mute" type="button" aria-pressed="false" aria-label="효과음 음소거">음소거</button></div>
+    <p id="sound-status" class="muted" role="status">자동 재생이 제한되면 화면을 클릭하거나 키를 눌러 주세요.</p>
+    <button id="sound-close" type="button">닫기</button>
+  </dialog>
+  <aside id="status-stack" aria-label="게임 상태 정보">
+    <section id="debug-status" class="status-area" aria-labelledby="debug-title" hidden><h2 id="debug-title">디버그 <small>F3</small></h2><pre id="net-stats" aria-label="Race performance statistics" hidden></pre><h2>음악 진단</h2><pre id="audio-stats" aria-label="Music playback diagnostics"></pre><button id="debug-music-toggle" type="button">이 탭 음악 켜기/끄기</button><p class="audio-debug-note">현재 탭 기준 · 다른 게임 탭의 음악도 확인하세요.</p></section>
+    <div id="music-status" class="status-area" role="status" hidden></div>
+    <section id="sky-status" class="status-area" aria-labelledby="sky-title"><h2 id="sky-title">지역 · 시간 · 구름</h2><span id="sky-description"></span> <a id="weather-credit" href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" hidden>Weather: Open-Meteo</a></section>
+  </aside>
+  <dialog id="driver-welcome" class="panel" aria-labelledby="welcome-title" aria-describedby="welcome-help"><form id="driver-welcome-form"><div class="eyebrow">WELCOME, RIDER</div><h2 id="welcome-title">드라이버 이름을 정해 주세요</h2><p id="welcome-help" class="muted">다른 드라이버에게 표시할 이름이에요. 나중에 메뉴에서 변경할 수 있습니다.</p><label for="welcome-name">드라이버 이름</label><input id="welcome-name" type="text" maxlength="16" required autocomplete="nickname" placeholder="최대 16자" autofocus><button type="submit" class="primary">시작하기 <span>→</span></button></form></dialog>
+  <dialog id="leave-confirm" class="panel" aria-labelledby="leave-title" aria-describedby="leave-message"><h2 id="leave-title">방에서 나갈까요?</h2><p id="leave-message" class="muted"></p><div class="dialog-actions"><button id="cancel-leave" type="button" autofocus>계속 머무르기</button><button id="confirm-leave" type="button" class="primary">나가기</button></div></dialog>
+  <div id="queue-notice" role="status" hidden></div>
+  <aside id="spectator-panel" class="panel" hidden>
+    <p id="spectator-status" class="muted"></p>
+    <section class="queued-ride" aria-labelledby="queued-ride-title">
+      <h2 id="queued-ride-title">내 다음 경기 차량</h2>
+      <div class="queued-vehicle-summary"><img id="queued-vehicle-image" width="384" height="240" alt="" hidden><div class="queued-vehicle-caption"><strong id="queued-vehicle-name"></strong><span id="queued-vehicle-description"></span></div></div>
+      <label for="spectator-vehicle" class="sr-only">다음 경기 차량</label><select id="spectator-vehicle"></select>
+    </section>
+    <section class="watch-driver" aria-labelledby="watch-driver-title"><h2 id="watch-driver-title"><label for="watch-target">관전할 드라이버</label></h2><select id="watch-target"></select></section>
+    <button id="spectator-ready">준비 취소</button>
+  </aside>
+  <main>
+    <section id="loading" class="overlay center" aria-live="polite">
+      <div class="panel loading-panel"><div class="eyebrow">NEXT STOP, THE BEACH.</div><h1 id="loading-title">바닷가로 떠나는 중</h1><p id="loading-status">PULSE와 서킷을 준비하고 있습니다.</p><div id="loading-bar" class="loading-bar"></div><button id="reload" hidden>다시 연결</button></div>
+    </section>
+    <section id="lobby" class="overlay" hidden>
+      <div class="panel lobby-panel">
+        <div class="eyebrow"><span class="live-dot"></span> BEACH CIRCUIT</div>
+        <p id="invite-notice" role="status" hidden></p>
+        <label for="name">드라이버 이름</label><input id="name" maxlength="16" value="Rider" autocomplete="nickname" spellcheck="false">
+        <label for="vehicle" class="vehicle-label">차량 선택</label><select id="vehicle"></select>
+        <div id="vehicle-performance" role="group" aria-label="차량 성능" aria-live="polite"></div>
+        <details class="lobby-settings"><summary>차량 상세</summary><p id="vehicle-info" class="muted vehicle-info"></p><p class="footnote">이름과 차량은 이 브라우저의 쿠키에 1년간 저장됩니다.</p></details>
+        <button id="practice" class="primary">혼자 연습 <span>→</span></button>
+        <div class="divider">친구와 함께 · 최대 4명</div>
+        <button id="create">방 만들기 <span>＋</span></button>
+        <form id="join-form"><label for="room-code" class="sr-only">참가할 방 코드</label><input id="room-code" placeholder="6자리 방 코드" maxlength="6" pattern="[a-fA-F0-9]{6}" required autocomplete="off"><button type="submit" id="join">참가</button></form>
+      </div>
+      <section id="room-directory" class="panel" aria-labelledby="directory-title"><div class="directory-heading"><h2 id="directory-title">열린 방</h2><button id="refresh-rooms" type="button">새로고침</button></div><p id="room-list-status" class="muted" role="status">방 목록을 불러오는 중입니다.</p><ol id="room-list"></ol><p class="footnote">경주 중인 방은 다음 경기 대기열로 입장합니다.</p></section>
+      <div class="preview-caption"><span>YOUR RIDE</span><strong id="preview-name">PULSE</strong><p id="preview-description">모든 능력이 균형 잡힌 기본 카트</p></div>
+    </section>
+    <dialog id="circuit-picker" class="panel" aria-labelledby="circuit-picker-title" aria-describedby="circuit-picker-help">
+      <h2 id="circuit-picker-title">서킷 선택</h2><p id="circuit-picker-help" class="muted"></p>
+      <label for="time-of-day">시간대</label><select id="time-of-day"><option id="time-of-day-auto" value="auto">자동 · 방장 현지 시간 기준</option><option value="sunrise">일출</option><option value="noon">점심</option><option value="sunset">일몰</option><option value="night">야간</option></select>
+      <label id="music-choice-label">음악 선택</label><div class="music-picker" role="group" aria-labelledby="music-choice-label"><button id="music-previous" type="button" aria-label="이전 음악">‹</button><div><strong id="music-choice" aria-live="polite">랜덤</strong></div><button id="music-next" type="button" aria-label="다음 음악">›</button></div>
+      <div id="circuit-options"></div><button id="cancel-circuit" type="button" class="quiet">취소</button>
+    </dialog>
+    <dialog id="start-confirm" class="panel" aria-labelledby="start-confirm-title" aria-describedby="start-confirm-message"><h2 id="start-confirm-title">지금 바로 게임을 시작할까요?</h2><p id="start-confirm-message" class="muted">아직 준비하지 않은 드라이버가 있습니다. 5초 뒤 모든 출전자를 준비 완료로 바꾸고 출발 신호를 시작합니다.</p><div class="dialog-actions"><button id="cancel-start" type="button" autofocus>취소</button><button id="confirm-start" type="button" class="primary">5초 뒤 시작</button></div></dialog>
+    <section id="room-panel" class="overlay" hidden>
+      <div class="panel room-panel">
+        <div class="eyebrow">RACE LOBBY</div><h1>출발 준비</h1><p id="room-track" class="muted"></p>
+        <div class="code-row"><div><label>방 코드</label><strong id="room-label">------</strong></div><button id="copy-code" aria-label="방 코드 복사">복사</button></div>
+        <button id="share-room">방 공유하기 <span>↗</span></button>
+        <dialog id="share-box" class="panel" aria-labelledby="share-title"><h2 id="share-title">방 공유하기</h2><label for="share-origin">공유 서버 주소 · 친구가 접속할 수 있는 주소</label><input id="share-origin" type="url" aria-describedby="share-help"><p id="share-help" class="muted">서버 주소를 수정한 뒤 초대 링크 복사를 누르세요.</p><label for="share-message">방 번호와 초대 링크 · 이름·차량 선택 후 참가</label><textarea id="share-message" rows="3" readonly></textarea><p class="muted">복사가 안 되면 선택된 내용을 Ctrl+C로 복사하세요.</p><p id="share-status" class="muted" role="status"></p><div class="share-actions"><button id="copy-share" type="button" class="primary">초대 링크 복사</button><button id="close-share" type="button" class="quiet">닫기</button></div></dialog>
+        <div class="section-label">드라이버 <span id="player-count">0 / 4</span></div>
+        <ol id="slots" class="slots"></ol>
+        <label for="room-vehicle" class="vehicle-label">차량 변경</label><select id="room-vehicle"></select>
+        <p id="waiting" class="muted" aria-live="polite"></p>
+        <div class="room-actions"><button id="ready">준비 완료</button><button id="start" class="primary">경주 시작 <span>→</span></button></div>
+      </div>
+    </section>
+    <section id="race" hidden aria-label="경주 정보">
+      <div class="race-top"><div class="lap-card"><span>LAP</span><strong id="lap">1 <small>/ 3</small></strong></div><div class="time-card"><span>RACE TIME</span><strong id="race-time">00:00.00</strong></div></div>
+      <div id="countdown" aria-live="assertive"></div><div id="finish-countdown" role="status" hidden></div><div id="race-notice" role="status"></div>
+      <div class="standings panel"><div class="section-label">POSITION <strong id="place">1 / 1</strong></div><ol id="race-players"></ol></div>
+      <canvas id="minimap" width="240" height="260" aria-label="서킷 지도와 드라이버 위치"></canvas>
+      <div class="boost-hud"><div><strong id="drive-state">PULSE / READY</strong><span>SPACE · BOOST</span></div><div class="gauge" role="meter" aria-label="부스터 충전량" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"><i id="charge-bar"></i><b></b></div><div class="gauge-caption"><span>드리프트로 충전</span><strong id="charge">50%</strong></div></div>
+      <div class="speed-hud"><strong id="speed">0</strong><span>KM/H</span></div>
+    </section>
+    <section id="results" class="overlay center" hidden>
+      <div class="panel results-panel"><div class="eyebrow">FINISH LINE</div><h1>레이스 결과</h1><p id="result-track" class="muted"></p><ol id="result-list"></ol><p id="next-grid" class="muted"></p><label for="result-vehicle">다음 경기 차량</label><select id="result-vehicle"></select><p id="result-waiting" class="muted"></p><button id="result-ready">준비 완료</button><button id="restart" class="primary">다시 달리기 <span>↗</span></button><button class="quiet leave">나가기</button></div>
+    </section>
+  </main>
+  <div id="wrong-way-warning" role="alert" hidden><strong>⚠ 역주행</strong><span>진행 방향을 확인하세요</span></div>
+  <div id="force-start-notice" role="status" aria-live="polite" hidden></div>
+  <div id="finish-banner" role="status" aria-live="assertive" hidden><strong id="finish-title"></strong><span id="finish-detail"></span></div>
+  <footer id="controls"><span><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> 주행</span><span><kbd>SHIFT</kbd> 드리프트</span><span><kbd>SPACE</kbd> 부스터</span><span><kbd>R</kbd> 트랙 복귀</span></footer>
+  <div id="toast" role="alert" hidden></div>
+</body>
+</html>

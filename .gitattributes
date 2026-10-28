@@ -1,0 +1,2 @@
+# Preserve supplied legal notices byte for byte, including their original line endings.
+public/assets/notices/*.txt -text -diff

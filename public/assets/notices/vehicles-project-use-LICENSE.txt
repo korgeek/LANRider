@@ -1,0 +1,7 @@
+OfficeRider / NextRider vehicle V4 package
+
+The newly authored vehicle geometry, palettes, procedural scripts and preview layouts were created for the requesting user's project. No third-party vehicle models, branded reference images or textures are redistributed in this package. The requesting user may use, modify, integrate and distribute these newly authored project deliverables.
+
+The unchanged shared driver and pre-existing authored coast preview environment remain subject to the same rights as the user's original project assets. This file does not grant rights to the external reference images, brands or designs; those images are intentionally excluded.
+
+Included software is provided AS IS, without warranty of merchantability, fitness for a particular purpose or noninfringement. No claim is made that generated material is eligible for exclusive copyright in every jurisdiction. Blender and glTF validation software are not bundled and retain their own licenses.
